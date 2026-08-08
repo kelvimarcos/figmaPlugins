@@ -1,0 +1,2055 @@
+<meta charset="utf-8" />
+<title>Kivo</title>
+<!-- Favicon em SVG inline: quadrado laranja da marca com o traço de tradução.
+     Dentro do Figma o iframe não tem aba, então ele só aparece ao abrir o
+     ui.html direto no browser (o que é o jeito mais rápido de testar o layout). -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23fa7835'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 11h11M11.5 8v3c0 5-2.4 9.4-5.5 11.2'/%3E%3Cpath d='M9 16.5c1.8 3.2 4.6 5.4 8.2 6.2'/%3E%3Cpath d='m17 25 4.5-10L26 25M18.7 21.6h5.6'/%3E%3C/g%3E%3C/svg%3E" />
+
+<style>
+  :root {
+    /* laranja da marca (o mesmo do logo); a variante escura é usada onde há
+       texto branco por cima, para o contraste não cair */
+    --accent: #fa7835;
+    --accent-deep: #c2551b;
+    --grad: linear-gradient(135deg, var(--accent-deep), var(--accent));
+    /* rgba() em vez de color-mix(): o Chromium que roda dentro do Figma nem
+       sempre é recente, e uma declaração inválida derruba a regra inteira
+       (bordas caem para currentColor e ficam escuras). */
+    --accent-soft: rgba(250, 120, 53, .15);
+    --accent-40: rgba(250, 120, 53, .4);
+    --accent-45: rgba(250, 120, 53, .45);
+    --accent-50: rgba(250, 120, 53, .5);
+    --accent-55: rgba(250, 120, 53, .55);
+    --ring: rgba(250, 120, 53, .35);
+    --r: 8px;
+  }
+
+  /* Por padrão a UI herda as variáveis de tema que o Figma injeta
+     (themeColors). Estas classes sobrescrevem tudo quando o usuário força
+     claro ou escuro pelo botão do cabeçalho. */
+  body.force-light {
+    --figma-color-bg: #ffffff;
+    --figma-color-bg-secondary: #f5f5f5;
+    --figma-color-bg-tertiary: #e6e6e6;
+    --figma-color-bg-hover: #f0f0f0;
+    --figma-color-text: #1e1e1e;
+    --figma-color-text-secondary: #5f5f5f;
+    --figma-color-text-tertiary: #a0a0a0;
+    --figma-color-text-danger: #d93025;
+    --figma-color-border: #e6e6e6;
+    --figma-color-border-strong: #b3b3b3;
+    color-scheme: light;
+  }
+  body.force-dark {
+    --figma-color-bg: #2c2c2c;
+    --figma-color-bg-secondary: #383838;
+    --figma-color-bg-tertiary: #444444;
+    --figma-color-bg-hover: #3f3f3f;
+    --figma-color-text: #ffffff;
+    --figma-color-text-secondary: #b3b3b3;
+    --figma-color-text-tertiary: #8c8c8c;
+    --figma-color-text-danger: #ff9d94;
+    --figma-color-border: #444444;
+    --figma-color-border-strong: #666666;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font: 11px/1.45 Inter, -apple-system, system-ui, sans-serif;
+    color: var(--figma-color-text);
+    background: var(--figma-color-bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .panel { display: flex; flex-direction: column; height: 100vh; }
+
+  /* --- cabeçalho --------------------------------------------------------- */
+
+  header {
+    position: relative;
+    display: flex; align-items: center; gap: 9px;
+    padding: 12px 14px 10px;
+  }
+  .mark {
+    width: 26px; height: 26px; flex: none; overflow: hidden;
+    display: grid; place-items: center;
+    border-radius: 7px; background: var(--accent); color: #fff;
+    box-shadow: 0 2px 8px var(--accent-40);
+  }
+  /* o logo é injetado por JS a partir do template no fim do arquivo */
+  .mark svg { width: 100%; height: 100%; display: block; }
+  .title { font-size: 12px; font-weight: 600; letter-spacing: -0.1px; }
+  .subtitle { color: var(--figma-color-text-tertiary); }
+  button.icon {
+    margin-left: auto; flex: none;
+    width: 28px; height: 28px; padding: 0; border-radius: 7px;
+    color: var(--figma-color-text-secondary);
+  }
+  button.icon:hover:not(:disabled) { color: var(--figma-color-text); }
+  button.icon svg { width: 14px; height: 14px; }
+  button.icon.on { color: var(--accent); border-color: var(--accent-45); background: var(--accent-soft); }
+  /* só o primeiro ícone empurra o grupo para a direita */
+  button.icon ~ button.icon { margin-left: 0; }
+
+  /* --- menu de idioma da interface --------------------------------------- */
+
+  .menu {
+    position: absolute; top: 100%; right: 14px; z-index: 20;
+    min-width: 156px; padding: 4px; margin-top: -2px;
+    display: flex; flex-direction: column; gap: 1px;
+    border: 1px solid var(--figma-color-border); border-radius: 10px;
+    background: var(--figma-color-bg);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, .22);
+  }
+  .menu button {
+    height: 26px; width: 100%; padding: 0 8px;
+    justify-content: flex-start; gap: 7px;
+    background: none; border: none; color: var(--figma-color-text);
+    font-weight: 500;
+  }
+  .menu button:hover:not(:disabled) { background: var(--figma-color-bg-hover); filter: none; }
+  .menu button.on { color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  /* o "✓" ocupa a coluna mesmo quando invisível, para os nomes alinharem */
+  .menu button::before { content: '✓'; width: 9px; flex: none; opacity: 0; font-size: 10px; }
+  .menu button.on::before { opacity: 1; }
+
+  .hint {
+    margin: 10px 0 0; color: var(--figma-color-text-tertiary);
+  }
+  .hint:empty { display: none; }
+
+  /* --- abas -------------------------------------------------------------- */
+
+  .tabs {
+    display: flex; gap: 2px; margin: 0 14px 12px;
+    padding: 2px; border-radius: 9px;
+    background: var(--figma-color-bg-secondary);
+  }
+  .tabs button {
+    flex: 1; height: 26px; border: 0; border-radius: 7px;
+    background: transparent; color: var(--figma-color-text-secondary);
+    font: inherit; font-weight: 500; cursor: pointer;
+    transition: background .16s, color .16s, box-shadow .16s;
+  }
+  .tabs button:hover { color: var(--figma-color-text); }
+  .tabs button.active {
+    background: var(--figma-color-bg);
+    color: var(--figma-color-text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .16);
+  }
+
+  /* --- estrutura --------------------------------------------------------- */
+
+  .body { flex: 1; overflow-y: auto; padding: 0 14px 14px; }
+  .body::-webkit-scrollbar { width: 8px; }
+  .body::-webkit-scrollbar-thumb {
+    border: 2px solid transparent; border-radius: 4px;
+    background: var(--figma-color-bg-tertiary); background-clip: content-box;
+  }
+
+  .card {
+    padding: 10px; margin-bottom: 10px;
+    border: 1px solid var(--figma-color-border);
+    border-radius: 10px;
+    background: var(--figma-color-bg-secondary);
+  }
+  /* cabeçalho do card de configurações: título à esquerda, "X" à direita */
+  .card-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .card-title { font-weight: 600; }
+  button.icon.close { width: 24px; height: 24px; border-radius: 6px; }
+  button.icon.close svg { width: 12px; height: 12px; }
+
+  .row { display: flex; gap: 8px; }
+  .row + .row { margin-top: 8px; }
+  .row > * { flex: 1; min-width: 0; }
+
+  label { display: block; margin-bottom: 5px; color: var(--figma-color-text-secondary); font-weight: 500; }
+
+  /* --- campos ------------------------------------------------------------ */
+
+  .field { position: relative; }
+  .field::after {
+    content: ''; position: absolute; right: 10px; top: 50%;
+    width: 5px; height: 5px; margin-top: -4px; pointer-events: none;
+    border: solid currentColor; border-width: 0 1.4px 1.4px 0;
+    transform: rotate(45deg); opacity: .5;
+  }
+  select, input[type="password"], input[type="number"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 30px; padding: 0 26px 0 9px;
+    border: 1px solid var(--figma-color-border);
+    border-radius: var(--r);
+    background: var(--figma-color-bg);
+    color: var(--figma-color-text);
+    font: inherit; cursor: pointer;
+    transition: border-color .14s, box-shadow .14s;
+  }
+  input[type="password"] { padding-right: 9px; cursor: text; }
+  input[type="number"] { padding-right: 9px; cursor: text; }
+  /* a quantidade não precisa de metade da linha */
+  .row > .qty { flex: 0 0 88px; }
+  select:hover, input:hover { border-color: var(--figma-color-border-strong); }
+  select:focus, input:focus, textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+
+  textarea {
+    width: 100%; min-height: 88px; resize: vertical; padding: 9px 10px;
+    border: 1px solid var(--figma-color-border); border-radius: var(--r);
+    background: var(--figma-color-bg); color: var(--figma-color-text);
+    font: inherit; line-height: 1.55;
+    transition: border-color .14s, box-shadow .14s;
+  }
+  textarea.out { background: var(--figma-color-bg-secondary); }
+
+  /* --- botões ------------------------------------------------------------ */
+
+  button {
+    /* sem isto, o estilo nativo do sistema pode vencer em alguns renderizadores
+       e devolver o botão em formato de pílula com borda escura */
+    -webkit-appearance: none; appearance: none;
+    height: 30px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--r);
+    font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    background: var(--grad); color: #fff;
+    transition: filter .14s, transform .08s, box-shadow .14s;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.08); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button.secondary {
+    background: var(--figma-color-bg); color: var(--figma-color-text);
+    border-color: var(--figma-color-border);
+  }
+  button.secondary:hover:not(:disabled) { background: var(--figma-color-bg-hover); filter: none; }
+  button:disabled { opacity: .38; cursor: default; }
+  button.block { width: 100%; }
+  button.busy::before {
+    content: ''; width: 11px; height: 11px; flex: none;
+    border: 1.6px solid currentColor; border-right-color: transparent;
+    border-radius: 50%; animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .swap {
+    flex: none !important; width: 30px; padding: 0; align-self: flex-end;
+  }
+  .swap svg { width: 14px; height: 14px; flex: none; }
+
+  /* --- chips de opção ---------------------------------------------------- */
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { margin: 0; cursor: pointer; }
+  .chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .chip span {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px 4px 8px; border-radius: 999px;
+    border: 1px solid var(--figma-color-border);
+    color: var(--figma-color-text-secondary);
+    transition: background .14s, color .14s, border-color .14s;
+  }
+  /* a caixa é desenhada no ::before do rótulo — o input real fica escondido
+     para o chip inteiro continuar sendo a área de clique */
+  .chip span::before {
+    content: ''; flex: none; width: 12px; height: 12px; border-radius: 3.5px;
+    border: 1px solid var(--figma-color-border-strong);
+    background: var(--figma-color-bg);
+    transition: background .14s, border-color .14s;
+  }
+  .chip input:checked + span {
+    background: var(--accent-soft);
+    border-color: var(--accent-45);
+    color: var(--figma-color-text);
+  }
+  .chip input:checked + span::before { background: var(--accent); border-color: transparent; }
+  .chip input:checked + span::after {
+    content: ''; position: absolute; left: 12px; top: 8px;
+    width: 3px; height: 6px; transform: rotate(43deg);
+    border: solid #fff; border-width: 0 1.5px 1.5px 0;
+  }
+  .chip input:focus-visible + span { box-shadow: 0 0 0 3px var(--ring); }
+
+  /* --- status e progresso ------------------------------------------------ */
+
+  .status {
+    display: flex; align-items: flex-start; gap: 5px;
+    color: var(--figma-color-text-secondary); min-height: 16px;
+  }
+  .status.error { color: var(--figma-color-text-danger); }
+  .status:not(:empty) { margin: 10px 0 8px; }
+
+  .bar {
+    height: 3px; border-radius: 3px; overflow: hidden;
+    background: var(--figma-color-bg-secondary);
+    opacity: 0; transition: opacity .2s;
+  }
+  .bar.on { opacity: 1; }
+  .bar > div { height: 100%; width: 0; border-radius: 3px; background: var(--grad); transition: width .18s ease-out; }
+
+  /* --- lista de resultados ----------------------------------------------- */
+
+  #list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+
+  .item {
+    display: flex; gap: 9px; padding: 9px 10px;
+    border: 1px solid var(--figma-color-border); border-radius: 10px;
+    background: var(--figma-color-bg);
+    transition: border-color .14s, background .14s;
+    animation: pop .18s ease-out;
+  }
+  .item:hover { border-color: var(--accent-50); }
+  .item.done { background: var(--accent-soft); }
+  @keyframes pop { from { opacity: 0; transform: translateY(3px); } }
+
+  .item .texts { flex: 1; min-width: 0; cursor: pointer; }
+  .item .src {
+    color: var(--figma-color-text-tertiary); word-break: break-word;
+  }
+  .item .dst {
+    margin-top: 4px; padding-left: 8px; word-break: break-word;
+    border-left: 2px solid var(--accent-55);
+  }
+  .item .dst.pending {
+    color: var(--figma-color-text-tertiary); font-style: italic;
+    border-left-color: var(--figma-color-border);
+  }
+  .item .dst.failed {
+    color: var(--figma-color-text-danger);
+    border-left-color: var(--figma-color-text-danger);
+  }
+
+  /* caixa de seleção desenhada à mão para acompanhar o tema */
+  .item input[type="checkbox"] {
+    -webkit-appearance: none; appearance: none;
+    position: relative; flex: none; margin: 1px 0 0;
+    width: 14px; height: 14px; border-radius: 4px; cursor: pointer;
+    border: 1px solid var(--figma-color-border-strong);
+    background: var(--figma-color-bg);
+    transition: background .14s, border-color .14s;
+  }
+  .item input[type="checkbox"]:checked { background: var(--accent); border-color: transparent; }
+  .item input[type="checkbox"]:checked::after {
+    content: ''; position: absolute; left: 4px; top: 1px;
+    width: 3.5px; height: 7px; transform: rotate(43deg);
+    border: solid #fff; border-width: 0 1.6px 1.6px 0;
+  }
+  .item input[type="checkbox"]:disabled { opacity: .4; cursor: default; }
+  .item input[type="checkbox"]:focus-visible { box-shadow: 0 0 0 3px var(--ring); }
+
+  .empty {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 34px 16px; text-align: center;
+    color: var(--figma-color-text-tertiary);
+  }
+  .empty svg { width: 30px; height: 30px; opacity: .45; }
+
+  /* --- rodapé ------------------------------------------------------------ */
+
+  .footer {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    padding: 10px 14px;
+    border-top: 1px solid var(--figma-color-border);
+    background: var(--figma-color-bg);
+  }
+  .count { color: var(--figma-color-text-tertiary); margin-right: auto; }
+
+  .hidden { display: none !important; }
+
+  /* --- alça de redimensionar --------------------------------------------- */
+
+  .grip {
+    position: fixed; right: 0; bottom: 0; z-index: 5;
+    width: 16px; height: 16px; cursor: nwse-resize;
+    display: grid; place-items: center;
+    color: var(--figma-color-text-tertiary);
+    touch-action: none;
+  }
+  .grip:hover { color: var(--accent); }
+  .grip svg { width: 9px; height: 9px; }
+
+  /* --- responsivo --------------------------------------------------------- */
+
+  .free-grid > .second { margin-top: 12px; }
+
+  /* Janela estreita: os pares de campos viram pilha e a alça de inverter
+     idiomas deita no meio. */
+  @media (max-width: 359px) {
+    header { padding: 10px 12px 8px; }
+    .subtitle { display: none; }
+    .tabs { margin: 0 12px 10px; }
+    .body { padding: 0 12px 14px; }
+    .row { flex-direction: column; }
+    .row.langs .swap { width: 100%; align-self: stretch; }
+    .row.langs .swap svg { transform: rotate(90deg); }
+    .footer > button { flex: 1; }
+    .count { flex-basis: 100%; margin-bottom: 6px; }
+  }
+
+  /* Janela larga: original e tradução lado a lado. */
+  @media (min-width: 620px) {
+    .free-grid { display: flex; gap: 12px; align-items: flex-start; }
+    .free-grid > * { flex: 1; min-width: 0; }
+    .free-grid > .second { margin-top: 0; }
+    .free-grid textarea { min-height: 150px; }
+    .item .texts {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start;
+    }
+    .item .dst { margin-top: 0; }
+  }
+
+  /* Muito larga: o conteúdo para de esticar para a linha não ficar longa.
+     O recuo é feito por padding (e não por margem automática, que cancelaria
+     o stretch dos filhos do flex e encolheria a coluna). */
+  @media (min-width: 900px) {
+    header, .body, .footer { padding-inline: max(14px, calc((100% - 880px) / 2)); }
+    .tabs { margin-inline: max(14px, calc((100% - 880px) / 2)); }
+  }
+</style>
+
+<div class="panel">
+  <header>
+    <div class="mark" id="mark" title="Kivo"></div>
+    <div>
+      <div class="title">Kivo</div>
+      <div class="subtitle" data-i18n="subtitle">Tradutor e gerador de textos</div>
+    </div>
+    <button class="secondary icon" id="btnLang" data-i18n-title="uiLang" data-i18n-aria="uiLang"
+            title="Idioma da interface" aria-label="Idioma da interface"
+            aria-haspopup="true" aria-expanded="false">
+      <!-- mesmo desenho do ícone do estado vazio: traço de idioma + "A" -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 6h9M8 4v2c0 4-1.8 7.5-4 9" />
+        <path d="M6.5 11c1.4 2.6 3.6 4.4 6.5 5" />
+        <path d="m13 20 4-9 4 9M14.5 17h5" />
+      </svg>
+    </button>
+    <button class="secondary icon" id="btnSettings" data-i18n-title="settings" data-i18n-aria="settings"
+            title="Configurações" aria-label="Configurações">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3.2" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-3-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-3l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 3 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 3H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+      </svg>
+    </button>
+    <button class="secondary icon" id="btnTheme" title="Tema"></button>
+    <div class="menu hidden" id="langMenu" role="menu"></div>
+  </header>
+
+  <div class="tabs" id="tabs">
+    <button id="tabFree" class="active" data-i18n="tabFree">Texto livre</button>
+    <button id="tabLayers" data-i18n="tabLayers">Traduzir em lote</button>
+    <button id="tabLorem" data-i18n="tabLorem">Gerador de texto</button>
+  </div>
+
+  <div class="body">
+    <div class="card hidden" id="settings">
+      <div class="card-head">
+        <div class="card-title" data-i18n="settings">Configurações</div>
+        <button class="secondary icon close" id="btnCloseSettings"
+                data-i18n-title="close" data-i18n-aria="close" title="Fechar" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="provider" data-i18n="providerLabel">Provedor de tradução</label>
+          <div class="field">
+            <select id="provider">
+              <option value="deepl" data-i18n="providerDeepl">DeepL (chave)</option>
+              <option value="gcloud" data-i18n="providerGcloud">Google Cloud (chave)</option>
+              <option value="mymemory" data-i18n="providerMyMemory">MyMemory (grátis)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="row hidden" id="keyRow">
+        <div>
+          <label for="apiKey" id="apiKeyLabel">Chave da API</label>
+          <input id="apiKey" type="password" />
+        </div>
+      </div>
+
+      <p class="hint" id="settingsHint"></p>
+    </div>
+
+    <div class="card" id="mainCard">
+      <div class="row langs">
+        <div>
+          <label for="from" data-i18n="from">De</label>
+          <div class="field"><select id="from"></select></div>
+        </div>
+        <button class="secondary swap" id="btnSwap" data-i18n-title="swap" data-i18n-aria="swap"
+                title="Inverter idiomas" aria-label="Inverter idiomas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 8h15l-3-3M20 16H5l3 3" />
+          </svg>
+        </button>
+        <div>
+          <label for="to" data-i18n="to">Para</label>
+          <div class="field"><select id="to"></select></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="scopeWrap">
+          <label for="scope" data-i18n="scope">O que traduzir</label>
+          <div class="field">
+            <select id="scope">
+              <option value="selection" data-i18n="scopeSelection">O que está selecionado</option>
+              <option value="page" data-i18n="scopePage">Página atual</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="viewLayers" class="hidden">
+      <div class="chips">
+        <label class="chip"><input type="checkbox" id="skipHidden" checked /><span data-i18n="chipHidden">Ignorar ocultos</span></label>
+        <label class="chip"><input type="checkbox" id="skipLocked" checked /><span data-i18n="chipLocked">Ignorar travados</span></label>
+        <label class="chip"><input type="checkbox" id="skipNumbers" checked /><span data-i18n="chipNumbers">Ignorar só-números</span></label>
+      </div>
+
+      <div class="row" style="margin-top: 10px">
+        <button class="block" id="btnScan" data-i18n="scan">Escanear e traduzir</button>
+      </div>
+
+      <div class="status" id="status"></div>
+      <div class="bar" id="bar"><div id="progress"></div></div>
+      <div id="list"></div>
+    </div>
+
+    <div id="viewFree">
+      <div class="free-grid">
+        <div>
+          <label for="freeIn" data-i18n="freeInLabel">Texto original</label>
+          <textarea id="freeIn" data-i18n-placeholder="freeInPh"
+                    placeholder="Digite ou cole o texto que quer traduzir…"></textarea>
+          <div class="row" style="margin-top: 10px">
+            <button id="btnFreeTranslate" data-i18n="freeTranslate">Traduzir</button>
+            <button class="secondary" id="btnFreeFromSelection" data-i18n="freeFromSelection">Pegar da seleção</button>
+          </div>
+          <div class="row" style="margin-top: 8px">
+            <button class="secondary block" id="btnFreeFromImage" data-i18n="ocrRead">Ler texto da imagem</button>
+          </div>
+        </div>
+
+        <div class="second">
+          <label for="freeOut" data-i18n="freeOutLabel">Tradução</label>
+          <textarea id="freeOut" class="out" readonly data-i18n-placeholder="freeOutPh"
+                    placeholder="A tradução aparece aqui."></textarea>
+          <div class="row" style="margin-top: 10px">
+            <button class="secondary" id="btnCopy" data-i18n="copy" disabled>Copiar</button>
+            <button id="btnPaste" data-i18n="paste" disabled>Colar no Figma</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="status" id="freeStatus"></div>
+    </div>
+
+    <div id="viewLorem" class="hidden">
+      <div class="card">
+        <div class="row">
+          <div class="qty">
+            <label for="loremAmount" data-i18n="loremAmount">Quantidade</label>
+            <input id="loremAmount" type="number" min="1" max="50" step="1" value="5" />
+          </div>
+          <div>
+            <label for="loremUnit" data-i18n="loremUnit">Em</label>
+            <div class="field">
+              <select id="loremUnit">
+                <option value="paragraphs" data-i18n="loremParagraphs">Parágrafos</option>
+                <option value="sentences" data-i18n="loremSentences">Frases</option>
+                <option value="words" data-i18n="loremWords">Palavras</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="block" id="btnLoremGenerate" data-i18n="loremGenerate">Gerar</button>
+      </div>
+
+      <label for="loremOut" style="margin-top: 10px" data-i18n="loremOutLabel">Texto gerado</label>
+      <textarea id="loremOut" class="out" readonly data-i18n-placeholder="loremOutPh"
+                placeholder="O texto gerado aparece aqui."></textarea>
+
+      <div class="row" style="margin-top: 10px">
+        <button class="secondary" id="btnLoremCopy" data-i18n="copy" disabled>Copiar</button>
+        <button id="btnLoremFill" data-i18n="loremFill" disabled>Preencher seleção</button>
+      </div>
+
+      <div class="status" id="loremStatus"></div>
+    </div>
+  </div>
+
+  <div class="footer" id="footer">
+    <span class="count" id="count"></span>
+    <button class="secondary" id="btnUndo" data-i18n="undo" disabled>Desfazer</button>
+    <button id="btnApply" data-i18n="apply" disabled>Aplicar</button>
+  </div>
+
+  <div class="grip" id="grip" data-i18n-title="grip" title="Arraste para redimensionar a janela">
+    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+      <path d="M9 1 1 9M9 5.5 5.5 9" />
+    </svg>
+  </div>
+</div>
+
+<script>
+  // ===========================================================================
+  // Idioma da interface
+  //
+  // Cada entrada de `STRINGS` é a tradução completa da UI. Quando um texto varia
+  // com a quantidade, as duas formas vêm separadas por "|" (singular|plural) e
+  // `t()` escolhe pela chave `n`. Faltando alguma chave, cai no pt-BR.
+  // Para acrescentar um idioma: some-o a UI_LANGS e copie o bloco do inglês.
+  // ===========================================================================
+  const UI_LANGS = [
+    ['pt-BR', 'Português'], ['en', 'English'], ['es', 'Español'],
+    ['fr', 'Français'], ['de', 'Deutsch'],
+  ];
+
+  const STRINGS = {
+    'pt-BR': {
+      subtitle: 'Tradutor e gerador de textos',
+      uiLang: 'Idioma da interface',
+      settings: 'Configurações',
+      close: 'Fechar',
+      themeAuto: 'Tema: seguir o Figma',
+      themeLight: 'Tema: claro',
+      themeDark: 'Tema: escuro',
+      themeClick: 'clique para alternar',
+      tabLayers: 'Traduzir em lote',
+      tabFree: 'Texto livre',
+      tabLorem: 'Gerador de texto',
+      loremAmount: 'Quantidade',
+      loremUnit: 'Em',
+      loremParagraphs: 'Parágrafos',
+      loremSentences: 'Frases',
+      loremWords: 'Palavras',
+      loremGenerate: 'Gerar',
+      loremOutLabel: 'Texto gerado',
+      loremOutPh: 'O texto gerado aparece aqui.',
+      loremFill: 'Preencher seleção',
+      providerLabel: 'Provedor de tradução',
+      providerDeepl: 'DeepL (chave)',
+      providerGcloud: 'Google Cloud (chave)',
+      providerMyMemory: 'MyMemory (grátis)',
+      keyDeepl: 'Chave da API DeepL',
+      keyGcloud: 'Chave da API do Google Cloud',
+      hintDeepl: 'Pegue a chave em deepl.com/pro-api → Conta → Chaves de API. O plano Free dá cota mensal sem custo.',
+      hintGcloud: 'Console do Google Cloud → APIs e serviços → Credenciais. A Cloud Translation API precisa estar ativada no projeto.',
+      hintMyMemory: 'Não precisa de chave. É uma memória de tradução colaborativa: evite conteúdo confidencial.',
+      hintEmbedded: 'Chave configurada no código do plugin.',
+      from: 'De',
+      to: 'Para',
+      swap: 'Inverter idiomas',
+      scope: 'O que traduzir',
+      scopeSelection: 'O que está selecionado',
+      scopePage: 'Página atual',
+      chipHidden: 'Ignorar ocultos',
+      chipLocked: 'Ignorar travados',
+      chipNumbers: 'Ignorar só-números',
+      scan: 'Escanear e traduzir',
+      scanBusy: 'Traduzindo…',
+      freeInLabel: 'Texto original',
+      freeInPh: 'Digite ou cole o texto que quer traduzir…',
+      freeTranslate: 'Traduzir',
+      freeTranslating: 'Traduzindo…',
+      freeFromSelection: 'Pegar da seleção',
+      ocrRead: 'Ler texto da imagem',
+      ocrReading: 'Lendo a imagem…',
+      ocrNoText: 'Nenhum texto encontrado na imagem.',
+      ocrNeedKey: 'A leitura de imagem usa a chave do Google Cloud — informe-a nas configurações.',
+      freeOutLabel: 'Tradução',
+      freeOutPh: 'A tradução aparece aqui.',
+      copy: 'Copiar',
+      paste: 'Colar no Figma',
+      undo: 'Desfazer',
+      apply: 'Aplicar',
+      grip: 'Arraste para redimensionar a janela',
+      autoDetect: 'Detectar automaticamente',
+      emptyTitle: 'Nenhum texto ainda.',
+      emptyHint: 'Escaneie para ver o que dá pra traduzir.',
+      itemSelect: 'Clique para selecionar no canvas',
+      itemPending: 'traduzindo…',
+      count: '{n} texto · {m} selecionado|{n} textos · {m} selecionados',
+      stSearching: 'Procurando textos…',
+      stTranslating: 'Traduzindo {done}/{total}…',
+      stApplying: 'Aplicando…',
+      stRestoring: 'Restaurando…',
+      stApplied: '{n} texto aplicado.|{n} textos aplicados.',
+      stRestored: '{n} texto restaurado.|{n} textos restaurados.',
+      stFailures: ' {n} falha: {first}| {n} falhas: {first}',
+      stNoText: 'Nenhum texto encontrado neste escopo.',
+      stPartial: '{ok}/{total} traduzidos. Erro: {error}',
+      stDone: '{n} texto traduzido. Revise e clique em Aplicar.|{n} textos traduzidos. Revise e clique em Aplicar.',
+      stSwapSource: 'Escolha um idioma de origem para poder inverter.',
+      stSelCopied: 'Texto copiado da seleção.',
+      stSelEmpty: 'Selecione ao menos uma camada de texto no canvas.',
+      stFreeEmpty: 'Digite algum texto para traduzir.',
+      stFreeDone: 'Traduzido para {lang}.',
+      stCopied: 'Tradução copiada.',
+      stCopyFail: 'Não foi possível copiar — selecione e use Ctrl+C.',
+      stNeedKey: 'Informe a chave da API do {provider}.',
+      stMyMemoryAuto: 'O MyMemory não detecta idioma: escolha o idioma de origem.',
+      errDeeplKey: 'Chave do DeepL inválida.',
+      errDeeplQuota: 'Cota do DeepL esgotada.',
+      errHttp: '{service} respondeu {status}.',
+      errMyMemory: 'Erro no MyMemory.',
+    },
+
+    en: {
+      subtitle: 'Translator and text generator',
+      uiLang: 'Interface language',
+      settings: 'Settings',
+      close: 'Close',
+      themeAuto: 'Theme: follow Figma',
+      themeLight: 'Theme: light',
+      themeDark: 'Theme: dark',
+      themeClick: 'click to switch',
+      tabLayers: 'Batch translate',
+      tabFree: 'Free text',
+      tabLorem: 'Text generator',
+      loremAmount: 'Amount',
+      loremUnit: 'In',
+      loremParagraphs: 'Paragraphs',
+      loremSentences: 'Sentences',
+      loremWords: 'Words',
+      loremGenerate: 'Generate',
+      loremOutLabel: 'Generated text',
+      loremOutPh: 'The generated text shows up here.',
+      loremFill: 'Fill selection',
+      providerLabel: 'Translation provider',
+      providerDeepl: 'DeepL (key)',
+      providerGcloud: 'Google Cloud (key)',
+      providerMyMemory: 'MyMemory (free)',
+      keyDeepl: 'DeepL API key',
+      keyGcloud: 'Google Cloud API key',
+      hintDeepl: 'Get the key at deepl.com/pro-api → Account → API keys. The Free plan gives a monthly quota at no cost.',
+      hintGcloud: 'Google Cloud console → APIs & Services → Credentials. The Cloud Translation API must be enabled for the project.',
+      hintMyMemory: 'No key needed. It is a shared translation memory: avoid confidential content.',
+      hintEmbedded: 'Key set in the plugin code.',
+      from: 'From',
+      to: 'To',
+      swap: 'Swap languages',
+      scope: 'What to translate',
+      scopeSelection: 'What is selected',
+      scopePage: 'Current page',
+      chipHidden: 'Skip hidden',
+      chipLocked: 'Skip locked',
+      chipNumbers: 'Skip numbers only',
+      scan: 'Scan and translate',
+      scanBusy: 'Translating…',
+      freeInLabel: 'Source text',
+      freeInPh: 'Type or paste the text you want to translate…',
+      freeTranslate: 'Translate',
+      freeTranslating: 'Translating…',
+      freeFromSelection: 'Take from selection',
+      ocrRead: 'Read text from image',
+      ocrReading: 'Reading the image…',
+      ocrNoText: 'No text found in the image.',
+      ocrNeedKey: 'Reading images uses the Google Cloud key — enter it in the settings.',
+      freeOutLabel: 'Translation',
+      freeOutPh: 'The translation shows up here.',
+      copy: 'Copy',
+      paste: 'Paste into Figma',
+      undo: 'Undo',
+      apply: 'Apply',
+      grip: 'Drag to resize the window',
+      autoDetect: 'Detect automatically',
+      emptyTitle: 'No text yet.',
+      emptyHint: 'Scan to see what can be translated.',
+      itemSelect: 'Click to select on the canvas',
+      itemPending: 'translating…',
+      count: '{n} text · {m} selected|{n} texts · {m} selected',
+      stSearching: 'Looking for text…',
+      stTranslating: 'Translating {done}/{total}…',
+      stApplying: 'Applying…',
+      stRestoring: 'Restoring…',
+      stApplied: '{n} text applied.|{n} texts applied.',
+      stRestored: '{n} text restored.|{n} texts restored.',
+      stFailures: ' {n} failure: {first}| {n} failures: {first}',
+      stNoText: 'No text found in this scope.',
+      stPartial: '{ok}/{total} translated. Error: {error}',
+      stDone: '{n} text translated. Review it and click Apply.|{n} texts translated. Review them and click Apply.',
+      stSwapSource: 'Pick a source language before swapping.',
+      stSelCopied: 'Text copied from the selection.',
+      stSelEmpty: 'Select at least one text layer on the canvas.',
+      stFreeEmpty: 'Type some text to translate.',
+      stFreeDone: 'Translated into {lang}.',
+      stCopied: 'Translation copied.',
+      stCopyFail: 'Could not copy — select it and press Ctrl+C.',
+      stNeedKey: 'Enter your {provider} API key.',
+      stMyMemoryAuto: 'MyMemory cannot detect languages: pick the source language.',
+      errDeeplKey: 'Invalid DeepL key.',
+      errDeeplQuota: 'DeepL quota exhausted.',
+      errHttp: '{service} responded {status}.',
+      errMyMemory: 'MyMemory error.',
+    },
+
+    es: {
+      subtitle: 'Traductor y generador de textos',
+      uiLang: 'Idioma de la interfaz',
+      settings: 'Ajustes',
+      close: 'Cerrar',
+      themeAuto: 'Tema: seguir a Figma',
+      themeLight: 'Tema: claro',
+      themeDark: 'Tema: oscuro',
+      themeClick: 'clic para cambiar',
+      tabLayers: 'Traducir en lote',
+      tabFree: 'Texto libre',
+      tabLorem: 'Generador de texto',
+      loremAmount: 'Cantidad',
+      loremUnit: 'En',
+      loremParagraphs: 'Párrafos',
+      loremSentences: 'Frases',
+      loremWords: 'Palabras',
+      loremGenerate: 'Generar',
+      loremOutLabel: 'Texto generado',
+      loremOutPh: 'El texto generado aparece aquí.',
+      loremFill: 'Rellenar selección',
+      providerLabel: 'Proveedor de traducción',
+      providerDeepl: 'DeepL (clave)',
+      providerGcloud: 'Google Cloud (clave)',
+      providerMyMemory: 'MyMemory (gratis)',
+      keyDeepl: 'Clave de la API de DeepL',
+      keyGcloud: 'Clave de la API de Google Cloud',
+      hintDeepl: 'Consigue la clave en deepl.com/pro-api → Cuenta → Claves de API. El plan Free incluye una cuota mensual sin coste.',
+      hintGcloud: 'Consola de Google Cloud → APIs y servicios → Credenciales. La Cloud Translation API debe estar activada en el proyecto.',
+      hintMyMemory: 'No necesita clave. Es una memoria de traducción colaborativa: evita contenido confidencial.',
+      hintEmbedded: 'Clave configurada en el código del plugin.',
+      from: 'De',
+      to: 'A',
+      swap: 'Invertir idiomas',
+      scope: 'Qué traducir',
+      scopeSelection: 'Lo seleccionado',
+      scopePage: 'Página actual',
+      chipHidden: 'Omitir ocultos',
+      chipLocked: 'Omitir bloqueados',
+      chipNumbers: 'Omitir solo números',
+      scan: 'Escanear y traducir',
+      scanBusy: 'Traduciendo…',
+      freeInLabel: 'Texto original',
+      freeInPh: 'Escribe o pega el texto que quieres traducir…',
+      freeTranslate: 'Traducir',
+      freeTranslating: 'Traduciendo…',
+      freeFromSelection: 'Tomar de la selección',
+      ocrRead: 'Leer texto de la imagen',
+      ocrReading: 'Leyendo la imagen…',
+      ocrNoText: 'No se encontró texto en la imagen.',
+      ocrNeedKey: 'La lectura de imágenes usa la clave de Google Cloud: introdúcela en los ajustes.',
+      freeOutLabel: 'Traducción',
+      freeOutPh: 'La traducción aparece aquí.',
+      copy: 'Copiar',
+      paste: 'Pegar en Figma',
+      undo: 'Deshacer',
+      apply: 'Aplicar',
+      grip: 'Arrastra para redimensionar la ventana',
+      autoDetect: 'Detectar automáticamente',
+      emptyTitle: 'Aún no hay texto.',
+      emptyHint: 'Escanea para ver qué se puede traducir.',
+      itemSelect: 'Clic para seleccionar en el lienzo',
+      itemPending: 'traduciendo…',
+      count: '{n} texto · {m} seleccionado|{n} textos · {m} seleccionados',
+      stSearching: 'Buscando textos…',
+      stTranslating: 'Traduciendo {done}/{total}…',
+      stApplying: 'Aplicando…',
+      stRestoring: 'Restaurando…',
+      stApplied: '{n} texto aplicado.|{n} textos aplicados.',
+      stRestored: '{n} texto restaurado.|{n} textos restaurados.',
+      stFailures: ' {n} fallo: {first}| {n} fallos: {first}',
+      stNoText: 'No se encontró texto en este alcance.',
+      stPartial: '{ok}/{total} traducidos. Error: {error}',
+      stDone: '{n} texto traducido. Revísalo y pulsa Aplicar.|{n} textos traducidos. Revísalos y pulsa Aplicar.',
+      stSwapSource: 'Elige un idioma de origen para poder invertir.',
+      stSelCopied: 'Texto copiado de la selección.',
+      stSelEmpty: 'Selecciona al menos una capa de texto en el lienzo.',
+      stFreeEmpty: 'Escribe algún texto para traducir.',
+      stFreeDone: 'Traducido a {lang}.',
+      stCopied: 'Traducción copiada.',
+      stCopyFail: 'No se pudo copiar: selecciónalo y usa Ctrl+C.',
+      stNeedKey: 'Introduce la clave de la API de {provider}.',
+      stMyMemoryAuto: 'MyMemory no detecta idiomas: elige el idioma de origen.',
+      errDeeplKey: 'Clave de DeepL no válida.',
+      errDeeplQuota: 'Cuota de DeepL agotada.',
+      errHttp: '{service} respondió {status}.',
+      errMyMemory: 'Error de MyMemory.',
+    },
+
+    fr: {
+      subtitle: 'Traducteur et générateur de textes',
+      uiLang: "Langue de l'interface",
+      settings: 'Paramètres',
+      close: 'Fermer',
+      themeAuto: 'Thème : suivre Figma',
+      themeLight: 'Thème : clair',
+      themeDark: 'Thème : sombre',
+      themeClick: 'cliquez pour changer',
+      tabLayers: 'Traduction par lot',
+      tabFree: 'Texte libre',
+      tabLorem: 'Générateur de texte',
+      loremAmount: 'Quantité',
+      loremUnit: 'En',
+      loremParagraphs: 'Paragraphes',
+      loremSentences: 'Phrases',
+      loremWords: 'Mots',
+      loremGenerate: 'Générer',
+      loremOutLabel: 'Texte généré',
+      loremOutPh: 'Le texte généré apparaît ici.',
+      loremFill: 'Remplir la sélection',
+      providerLabel: 'Service de traduction',
+      providerDeepl: 'DeepL (clé)',
+      providerGcloud: 'Google Cloud (clé)',
+      providerMyMemory: 'MyMemory (gratuit)',
+      keyDeepl: 'Clé API DeepL',
+      keyGcloud: 'Clé API Google Cloud',
+      hintDeepl: 'Récupérez la clé sur deepl.com/pro-api → Compte → Clés API. Le plan Free offre un quota mensuel gratuit.',
+      hintGcloud: 'Console Google Cloud → API et services → Identifiants. La Cloud Translation API doit être activée sur le projet.',
+      hintMyMemory: 'Aucune clé requise. C’est une mémoire de traduction partagée : évitez tout contenu confidentiel.',
+      hintEmbedded: 'Clé définie dans le code du plugin.',
+      from: 'De',
+      to: 'Vers',
+      swap: 'Inverser les langues',
+      scope: 'Que traduire',
+      scopeSelection: 'La sélection',
+      scopePage: 'Page actuelle',
+      chipHidden: 'Ignorer les masqués',
+      chipLocked: 'Ignorer les verrouillés',
+      chipNumbers: 'Ignorer les nombres seuls',
+      scan: 'Analyser et traduire',
+      scanBusy: 'Traduction…',
+      freeInLabel: 'Texte source',
+      freeInPh: 'Saisissez ou collez le texte à traduire…',
+      freeTranslate: 'Traduire',
+      freeTranslating: 'Traduction…',
+      freeFromSelection: 'Prendre la sélection',
+      ocrRead: 'Lire le texte de l’image',
+      ocrReading: 'Lecture de l’image…',
+      ocrNoText: 'Aucun texte trouvé dans l’image.',
+      ocrNeedKey: 'La lecture d’images utilise la clé Google Cloud — saisissez-la dans les paramètres.',
+      freeOutLabel: 'Traduction',
+      freeOutPh: 'La traduction apparaît ici.',
+      copy: 'Copier',
+      paste: 'Coller dans Figma',
+      undo: 'Annuler',
+      apply: 'Appliquer',
+      grip: 'Faites glisser pour redimensionner la fenêtre',
+      autoDetect: 'Détecter automatiquement',
+      emptyTitle: 'Aucun texte pour l’instant.',
+      emptyHint: 'Lancez une analyse pour voir ce qui peut être traduit.',
+      itemSelect: 'Cliquez pour sélectionner sur le canevas',
+      itemPending: 'traduction…',
+      count: '{n} texte · {m} sélectionné|{n} textes · {m} sélectionnés',
+      stSearching: 'Recherche de textes…',
+      stTranslating: 'Traduction {done}/{total}…',
+      stApplying: 'Application…',
+      stRestoring: 'Restauration…',
+      stApplied: '{n} texte appliqué.|{n} textes appliqués.',
+      stRestored: '{n} texte restauré.|{n} textes restaurés.',
+      stFailures: ' {n} échec : {first}| {n} échecs : {first}',
+      stNoText: 'Aucun texte trouvé dans cette portée.',
+      stPartial: '{ok}/{total} traduits. Erreur : {error}',
+      stDone: '{n} texte traduit. Vérifiez puis cliquez sur Appliquer.|{n} textes traduits. Vérifiez puis cliquez sur Appliquer.',
+      stSwapSource: 'Choisissez une langue source pour pouvoir inverser.',
+      stSelCopied: 'Texte copié depuis la sélection.',
+      stSelEmpty: 'Sélectionnez au moins un calque de texte sur le canevas.',
+      stFreeEmpty: 'Saisissez du texte à traduire.',
+      stFreeDone: 'Traduit en {lang}.',
+      stCopied: 'Traduction copiée.',
+      stCopyFail: 'Copie impossible — sélectionnez puis Ctrl+C.',
+      stNeedKey: 'Saisissez la clé API {provider}.',
+      stMyMemoryAuto: 'MyMemory ne détecte pas la langue : choisissez la langue source.',
+      errDeeplKey: 'Clé DeepL invalide.',
+      errDeeplQuota: 'Quota DeepL épuisé.',
+      errHttp: '{service} a répondu {status}.',
+      errMyMemory: 'Erreur MyMemory.',
+    },
+
+    de: {
+      subtitle: 'Übersetzer und Textgenerator',
+      uiLang: 'Sprache der Oberfläche',
+      settings: 'Einstellungen',
+      close: 'Schließen',
+      themeAuto: 'Design: Figma folgen',
+      themeLight: 'Design: hell',
+      themeDark: 'Design: dunkel',
+      themeClick: 'zum Wechseln klicken',
+      tabLayers: 'Stapelübersetzung',
+      tabFree: 'Freier Text',
+      tabLorem: 'Textgenerator',
+      loremAmount: 'Menge',
+      loremUnit: 'In',
+      loremParagraphs: 'Absätze',
+      loremSentences: 'Sätze',
+      loremWords: 'Wörter',
+      loremGenerate: 'Erzeugen',
+      loremOutLabel: 'Erzeugter Text',
+      loremOutPh: 'Der erzeugte Text erscheint hier.',
+      loremFill: 'Auswahl füllen',
+      providerLabel: 'Übersetzungsdienst',
+      providerDeepl: 'DeepL (Schlüssel)',
+      providerGcloud: 'Google Cloud (Schlüssel)',
+      providerMyMemory: 'MyMemory (kostenlos)',
+      keyDeepl: 'DeepL-API-Schlüssel',
+      keyGcloud: 'Google-Cloud-API-Schlüssel',
+      hintDeepl: 'Schlüssel unter deepl.com/pro-api → Konto → API-Schlüssel. Der Free-Tarif enthält ein kostenloses Monatskontingent.',
+      hintGcloud: 'Google-Cloud-Konsole → APIs und Dienste → Anmeldedaten. Die Cloud Translation API muss im Projekt aktiviert sein.',
+      hintMyMemory: 'Kein Schlüssel nötig. Es ist ein gemeinsamer Übersetzungsspeicher: keine vertraulichen Inhalte senden.',
+      hintEmbedded: 'Schlüssel im Plugin-Code hinterlegt.',
+      from: 'Von',
+      to: 'Nach',
+      swap: 'Sprachen tauschen',
+      scope: 'Was übersetzen',
+      scopeSelection: 'Die Auswahl',
+      scopePage: 'Aktuelle Seite',
+      chipHidden: 'Ausgeblendete überspringen',
+      chipLocked: 'Gesperrte überspringen',
+      chipNumbers: 'Reine Zahlen überspringen',
+      scan: 'Scannen und übersetzen',
+      scanBusy: 'Übersetzen…',
+      freeInLabel: 'Ausgangstext',
+      freeInPh: 'Text eingeben oder einfügen, der übersetzt werden soll…',
+      freeTranslate: 'Übersetzen',
+      freeTranslating: 'Übersetzen…',
+      freeFromSelection: 'Aus Auswahl holen',
+      ocrRead: 'Text aus Bild lesen',
+      ocrReading: 'Bild wird gelesen…',
+      ocrNoText: 'Kein Text im Bild gefunden.',
+      ocrNeedKey: 'Das Lesen von Bildern nutzt den Google-Cloud-Schlüssel — trage ihn in den Einstellungen ein.',
+      freeOutLabel: 'Übersetzung',
+      freeOutPh: 'Die Übersetzung erscheint hier.',
+      copy: 'Kopieren',
+      paste: 'In Figma einfügen',
+      undo: 'Rückgängig',
+      apply: 'Anwenden',
+      grip: 'Ziehen, um das Fenster zu skalieren',
+      autoDetect: 'Automatisch erkennen',
+      emptyTitle: 'Noch kein Text.',
+      emptyHint: 'Scannen, um zu sehen, was übersetzt werden kann.',
+      itemSelect: 'Klicken, um auf der Canvas auszuwählen',
+      itemPending: 'wird übersetzt…',
+      count: '{n} Text · {m} ausgewählt|{n} Texte · {m} ausgewählt',
+      stSearching: 'Texte werden gesucht…',
+      stTranslating: 'Übersetzen {done}/{total}…',
+      stApplying: 'Wird angewendet…',
+      stRestoring: 'Wird wiederhergestellt…',
+      stApplied: '{n} Text angewendet.|{n} Texte angewendet.',
+      stRestored: '{n} Text wiederhergestellt.|{n} Texte wiederhergestellt.',
+      stFailures: ' {n} Fehler: {first}| {n} Fehler: {first}',
+      stNoText: 'In diesem Bereich wurde kein Text gefunden.',
+      stPartial: '{ok}/{total} übersetzt. Fehler: {error}',
+      stDone: '{n} Text übersetzt. Prüfen und auf Anwenden klicken.|{n} Texte übersetzt. Prüfen und auf Anwenden klicken.',
+      stSwapSource: 'Wähle eine Ausgangssprache, um tauschen zu können.',
+      stSelCopied: 'Text aus der Auswahl übernommen.',
+      stSelEmpty: 'Wähle mindestens eine Textebene auf der Canvas aus.',
+      stFreeEmpty: 'Gib Text zum Übersetzen ein.',
+      stFreeDone: 'Übersetzt nach {lang}.',
+      stCopied: 'Übersetzung kopiert.',
+      stCopyFail: 'Kopieren nicht möglich — markieren und Strg+C drücken.',
+      stNeedKey: '{provider}-API-Schlüssel eingeben.',
+      stMyMemoryAuto: 'MyMemory erkennt die Sprache nicht: Ausgangssprache wählen.',
+      errDeeplKey: 'Ungültiger DeepL-Schlüssel.',
+      errDeeplQuota: 'DeepL-Kontingent aufgebraucht.',
+      errHttp: '{service} antwortete {status}.',
+      errMyMemory: 'MyMemory-Fehler.',
+    },
+  };
+
+  const FALLBACK_LANG = 'pt-BR';
+  let uiLang = FALLBACK_LANG;
+
+  // `t('stApplied', { n: 3 })` → "3 textos aplicados."
+  function t(key, params) {
+    const dict = STRINGS[uiLang] || STRINGS[FALLBACK_LANG];
+    let text = dict[key];
+    if (text === undefined) text = STRINGS[FALLBACK_LANG][key];
+    if (text === undefined) return key;
+    if (text.includes('|')) {
+      const forms = text.split('|');
+      text = (params && Number(params.n) === 1) ? forms[0] : forms[1];
+    }
+    if (!params) return text;
+    return text.replace(/\{(\w+)\}/g, (whole, name) =>
+      (params[name] === undefined ? whole : String(params[name]))
+    );
+  }
+
+  const LANGUAGES = [
+    ['pt-BR', 'Português (BR)'], ['pt-PT', 'Português (PT)'], ['en', 'Inglês'],
+    ['es', 'Espanhol'], ['fr', 'Francês'], ['de', 'Alemão'], ['it', 'Italiano'],
+    ['nl', 'Holandês'], ['pl', 'Polonês'], ['ru', 'Russo'], ['uk', 'Ucraniano'],
+    ['tr', 'Turco'], ['ar', 'Árabe'], ['he', 'Hebraico'], ['hi', 'Hindi'],
+    ['ja', 'Japonês'], ['ko', 'Coreano'], ['zh-CN', 'Chinês (simpl.)'],
+    ['zh-TW', 'Chinês (trad.)'], ['id', 'Indonésio'], ['vi', 'Vietnamita'],
+    ['th', 'Tailandês'], ['sv', 'Sueco'], ['da', 'Dinamarquês'], ['no', 'Norueguês'],
+    ['fi', 'Finlandês'], ['cs', 'Tcheco'], ['el', 'Grego'], ['ro', 'Romeno'],
+    ['hu', 'Húngaro'],
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    scope: $('scope'), provider: $('provider'), from: $('from'), to: $('to'),
+    keyRow: $('keyRow'), apiKey: $('apiKey'), apiKeyLabel: $('apiKeyLabel'),
+    skipHidden: $('skipHidden'), skipLocked: $('skipLocked'), skipNumbers: $('skipNumbers'),
+    scan: $('btnScan'), apply: $('btnApply'), undo: $('btnUndo'),
+    status: $('status'), progress: $('progress'), bar: $('bar'),
+    list: $('list'), count: $('count'),
+    swap: $('btnSwap'), scopeWrap: $('scopeWrap'), footer: $('footer'),
+    tabLayers: $('tabLayers'), tabFree: $('tabFree'),
+    viewLayers: $('viewLayers'), viewFree: $('viewFree'),
+    freeIn: $('freeIn'), freeOut: $('freeOut'), freeStatus: $('freeStatus'),
+    freeTranslate: $('btnFreeTranslate'), freeFromSelection: $('btnFreeFromSelection'),
+    freeFromImage: $('btnFreeFromImage'),
+    copy: $('btnCopy'), paste: $('btnPaste'), theme: $('btnTheme'), mark: $('mark'),
+    settings: $('settings'), settingsBtn: $('btnSettings'), settingsHint: $('settingsHint'),
+    tabs: $('tabs'), mainCard: $('mainCard'),
+    langBtn: $('btnLang'), langMenu: $('langMenu'), closeSettings: $('btnCloseSettings'),
+    tabLorem: $('tabLorem'), viewLorem: $('viewLorem'),
+    loremAmount: $('loremAmount'), loremUnit: $('loremUnit'), loremOut: $('loremOut'),
+    loremGenerate: $('btnLoremGenerate'), loremCopy: $('btnLoremCopy'),
+    loremFill: $('btnLoremFill'), loremStatus: $('loremStatus'),
+  };
+
+  /** @type {{id:string,text:string,page:string,translated:boolean,result:string|null,error:string|null,checked:boolean}[]} */
+  let items = [];
+  const cache = new Map();
+
+  // --- montagem dos selects -------------------------------------------------
+
+  // Os nomes dos idiomas saem do próprio browser, então acompanham o idioma da
+  // interface sem precisar de 30 traduções por locale. Se o Chromium do Figma
+  // for antigo demais para `Intl.DisplayNames`, cai na lista em português.
+  let displayNames = null;
+
+  function makeDisplayNames() {
+    try {
+      displayNames = new Intl.DisplayNames([uiLang], { type: 'language' });
+    } catch {
+      displayNames = null;
+    }
+  }
+  makeDisplayNames();
+
+  function langName(code, fallback) {
+    if (!displayNames) return fallback;
+    try {
+      const name = displayNames.of(code);
+      if (!name || name === code) return fallback;
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    } catch {
+      return fallback;
+    }
+  }
+
+  function fillLanguageSelects() {
+    const from = els.from.value || 'auto';
+    const to = els.to.value || 'pt-BR';
+    els.from.replaceChildren();
+    els.to.replaceChildren();
+    els.from.appendChild(new Option(t('autoDetect'), 'auto'));
+    for (const [code, ptName] of LANGUAGES) {
+      const name = langName(code, ptName);
+      els.from.appendChild(new Option(name, code));
+      els.to.appendChild(new Option(name, code));
+    }
+    els.from.value = from;
+    els.to.value = to;
+  }
+
+  fillLanguageSelects();
+  els.from.value = 'auto';
+  els.to.value = 'pt-BR';
+
+  // ===========================================================================
+  // CHAVES EMBUTIDAS — cole a sua entre as aspas para não precisar digitar.
+  //
+  // Preenchendo aqui, o campo de chave some da interface e o provedor já vem
+  // selecionado. Deixando vazio, o campo aparece normalmente.
+  //
+  // ATENÇÃO: só faça isso em plugin de uso próprio. Num plugin PUBLICADO a
+  // chave viaja dentro do pacote e qualquer pessoa consegue extraí-la — o
+  // consumo cairia na sua fatura. Antes de publicar, esvazie estas duas linhas.
+  // ===========================================================================
+  const CHAVES_EMBUTIDAS = {
+    deepl: '',
+    gcloud: '',
+  };
+
+  // Cada provedor tem a sua chave; trocar de provedor não deve apagar a outra.
+  const PROVIDERS = {
+    deepl: { name: 'DeepL', keyLabel: 'keyDeepl', hint: 'hintDeepl', placeholder: 'xxxxxxxx-xxxx-…:fx' },
+    gcloud: { name: 'Google Cloud', keyLabel: 'keyGcloud', hint: 'hintGcloud', placeholder: 'AIza…' },
+    mymemory: { name: 'MyMemory', hint: 'hintMyMemory' },
+  };
+  const keys = {};
+
+  // A chave embutida tem prioridade sobre o que estiver no campo.
+  const currentKey = () =>
+    (CHAVES_EMBUTIDAS[els.provider.value] || els.apiKey.value || '').trim();
+
+  function syncProvider() {
+    const provider = els.provider.value;
+    const info = PROVIDERS[provider] || {};
+    const embutida = Boolean(CHAVES_EMBUTIDAS[provider]);
+    els.keyRow.classList.toggle('hidden', !info.keyLabel || embutida);
+    if (info.keyLabel && !embutida) {
+      els.apiKeyLabel.textContent = t(info.keyLabel);
+      els.apiKey.placeholder = info.placeholder;
+      els.apiKey.value = keys[provider] || '';
+    }
+    els.settingsHint.textContent = embutida ? t('hintEmbedded') : (info.hint ? t(info.hint) : '');
+  }
+
+  // --- painel de configurações ----------------------------------------------
+
+  els.settingsBtn.addEventListener('click', () => {
+    emConfig = !emConfig;
+    renderView();
+  });
+
+  // O "X" do card faz o mesmo que clicar de novo na engrenagem: volta à tela.
+  els.closeSettings.addEventListener('click', () => {
+    emConfig = false;
+    renderView();
+  });
+
+  els.provider.addEventListener('change', () => {
+    syncProvider();
+    saveSettings();
+  });
+  els.apiKey.addEventListener('change', () => {
+    keys[els.provider.value] = els.apiKey.value;
+    saveSettings();
+  });
+  for (const el of [els.scope, els.from, els.to, els.skipHidden, els.skipLocked, els.skipNumbers]) {
+    el.addEventListener('change', saveSettings);
+  }
+
+  els.swap.addEventListener('click', () => {
+    if (els.from.value === 'auto') {
+      setStatus(t('stSwapSource'), true);
+      return;
+    }
+    const from = els.from.value;
+    els.from.value = els.to.value;
+    els.to.value = from;
+    saveSettings();
+  });
+
+  // --- idioma da interface ---------------------------------------------------
+
+  // Traduz tudo o que está no HTML: `data-i18n` troca o texto, e as variantes
+  // com sufixo trocam title/placeholder/aria-label.
+  function translateMarkup() {
+    for (const el of document.querySelectorAll('[data-i18n]')) {
+      el.textContent = t(el.dataset.i18n);
+    }
+    for (const el of document.querySelectorAll('[data-i18n-title]')) {
+      el.title = t(el.dataset.i18nTitle);
+    }
+    for (const el of document.querySelectorAll('[data-i18n-placeholder]')) {
+      el.placeholder = t(el.dataset.i18nPlaceholder);
+    }
+    for (const el of document.querySelectorAll('[data-i18n-aria]')) {
+      el.setAttribute('aria-label', t(el.dataset.i18nAria));
+    }
+  }
+
+  function renderLangMenu() {
+    els.langMenu.replaceChildren();
+    for (const [code, name] of UI_LANGS) {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.setAttribute('role', 'menuitem');
+      option.textContent = name;
+      option.classList.toggle('on', code === uiLang);
+      option.addEventListener('click', () => {
+        applyLang(code);
+        toggleLangMenu(false);
+        saveSettings();
+      });
+      els.langMenu.appendChild(option);
+    }
+  }
+
+  function toggleLangMenu(open) {
+    const show = open === undefined ? els.langMenu.classList.contains('hidden') : open;
+    els.langMenu.classList.toggle('hidden', !show);
+    els.langBtn.classList.toggle('on', show);
+    els.langBtn.setAttribute('aria-expanded', String(show));
+  }
+
+  function applyLang(next) {
+    uiLang = STRINGS[next] ? next : FALLBACK_LANG;
+    document.documentElement.lang = uiLang;
+    makeDisplayNames();
+
+    translateMarkup();
+    fillLanguageSelects();
+    renderLangMenu();
+    syncProvider();
+    applyTheme(theme);
+
+    // Estes três textos são escritos por JS e não passam pelo data-i18n.
+    els.scan.textContent = t(els.scan.disabled ? 'scanBusy' : 'scan');
+    els.freeTranslate.textContent = t(els.freeTranslate.disabled ? 'freeTranslating' : 'freeTranslate');
+    render();
+
+    // A sandbox mostra os avisos nativos do Figma, então precisa saber o idioma.
+    parent.postMessage({ pluginMessage: { type: 'ui-lang', lang: uiLang } }, '*');
+  }
+
+  els.langBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleLangMenu();
+  });
+  document.addEventListener('click', () => toggleLangMenu(false));
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    // Esc fecha o que estiver aberto: primeiro o menu, depois as configurações.
+    if (!els.langMenu.classList.contains('hidden')) {
+      toggleLangMenu(false);
+    } else if (emConfig) {
+      emConfig = false;
+      renderView();
+    }
+  });
+
+  // Primeira abertura: tenta o idioma do próprio Figma antes de cair no pt-BR.
+  function guessLang() {
+    const wanted = (navigator.languages || [navigator.language || '']).map(String);
+    for (const tag of wanted) {
+      if (STRINGS[tag]) return tag;
+      const short = tag.split('-')[0];
+      const match = UI_LANGS.find(([code]) => code.split('-')[0] === short);
+      if (match) return match[0];
+    }
+    return FALLBACK_LANG;
+  }
+
+  // --- tema ------------------------------------------------------------------
+
+  // 'auto' segue o tema do Figma; as outras duas forçam a paleta.
+  const THEMES = ['auto', 'light', 'dark'];
+  const THEME_LABEL = { auto: 'themeAuto', light: 'themeLight', dark: 'themeDark' };
+  const icon = (paths) =>
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+    + ` stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+  const THEME_ICON = {
+    auto: icon('<circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none" />'),
+    light: icon('<circle cx="12" cy="12" r="4.5" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" />'),
+    dark: icon('<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z" />'),
+  };
+  let theme = 'auto';
+
+  function applyTheme(next) {
+    theme = THEMES.includes(next) ? next : 'auto';
+    document.body.classList.toggle('force-light', theme === 'light');
+    document.body.classList.toggle('force-dark', theme === 'dark');
+    els.theme.innerHTML = THEME_ICON[theme];
+    els.theme.title = `${t(THEME_LABEL[theme])} (${t('themeClick')})`;
+  }
+
+  els.theme.addEventListener('click', () => {
+    applyTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]);
+    saveSettings();
+  });
+
+  applyTheme('auto');
+  // Se há chave embutida, já começa nesse provedor; senão, no DeepL.
+  els.provider.value =
+    Object.keys(CHAVES_EMBUTIDAS).find((p) => CHAVES_EMBUTIDAS[p]) || 'deepl';
+  syncProvider();
+  applyLang(guessLang());
+
+  // --- redimensionar a janela -----------------------------------------------
+
+  // O iframe ocupa a janela inteira do plugin, então a posição do ponteiro já
+  // é o tamanho desejado. O tamanho só é gravado ao soltar, para não escrever
+  // no clientStorage a cada pixel arrastado.
+  const grip = $('grip');
+  grip.addEventListener('pointerdown', (event) => {
+    grip.setPointerCapture(event.pointerId);
+    grip.addEventListener('pointermove', onGripMove);
+  });
+  grip.addEventListener('pointerup', (event) => {
+    grip.removeEventListener('pointermove', onGripMove);
+    grip.releasePointerCapture(event.pointerId);
+    sendResize(event, true);
+  });
+
+  const onGripMove = (event) => sendResize(event, false);
+
+  function sendResize(event, persist) {
+    parent.postMessage({ pluginMessage: { type: 'resize', persist, size: {
+      w: Math.floor(event.clientX + 6),
+      h: Math.floor(event.clientY + 6),
+    } } }, '*');
+  }
+
+  // --- abas -----------------------------------------------------------------
+
+  // As configurações substituem a tela em vez de empilhar mais um card: abertas,
+  // escondem abas, campos e rodapé.
+  let abaAtual = 'free';
+  let emConfig = false;
+
+  function renderView() {
+    // Com as configurações abertas nenhuma aba aparece; `tab` fica nulo e todas
+    // as vistas caem no mesmo `hidden`.
+    const tab = emConfig ? null : abaAtual;
+
+    els.settings.classList.toggle('hidden', !emConfig);
+    els.settingsBtn.classList.toggle('on', emConfig);
+
+    els.tabs.classList.toggle('hidden', emConfig);
+    // O lorem ipsum não traduz nada, então os campos De/Para saem da frente.
+    els.mainCard.classList.toggle('hidden', emConfig || tab === 'lorem');
+    els.viewLayers.classList.toggle('hidden', tab !== 'layers');
+    els.viewFree.classList.toggle('hidden', tab !== 'free');
+    els.viewLorem.classList.toggle('hidden', tab !== 'lorem');
+    els.footer.classList.toggle('hidden', tab !== 'layers');
+
+    els.tabFree.classList.toggle('active', abaAtual === 'free');
+    els.tabLayers.classList.toggle('active', abaAtual === 'layers');
+    els.tabLorem.classList.toggle('active', abaAtual === 'lorem');
+    els.scopeWrap.classList.toggle('hidden', abaAtual !== 'layers');
+  }
+
+  const showTab = (tab) => { abaAtual = tab; emConfig = false; renderView(); };
+  els.tabLayers.addEventListener('click', () => showTab('layers'));
+  els.tabFree.addEventListener('click', () => showTab('free'));
+  els.tabLorem.addEventListener('click', () => showTab('lorem'));
+
+  function saveSettings() {
+    parent.postMessage({ pluginMessage: { type: 'save-settings', settings: {
+      scope: els.scope.value, provider: els.provider.value,
+      from: els.from.value, to: els.to.value, keys,
+      skipHidden: els.skipHidden.checked, skipLocked: els.skipLocked.checked,
+      skipNumbers: els.skipNumbers.checked, theme, uiLang,
+    } } }, '*');
+  }
+
+  function applySettings(s) {
+    if (!s) return;
+    // O idioma vem primeiro: ele reconstrói os selects de idioma, e os valores
+    // gravados são aplicados logo abaixo, por cima da lista já traduzida.
+    if (s.uiLang) applyLang(s.uiLang);
+    // Quem usou a versão com "todas as páginas" tem esse valor gravado; sem a
+    // opção na lista o select ficaria vazio, então só aceitamos o que existe.
+    if (s.scope && [...els.scope.options].some((o) => o.value === s.scope)) {
+      els.scope.value = s.scope;
+    }
+    if (s.provider) els.provider.value = s.provider;
+    if (s.from) els.from.value = s.from;
+    if (s.to) els.to.value = s.to;
+    if (s.keys) Object.assign(keys, s.keys);
+    if (typeof s.skipHidden === 'boolean') els.skipHidden.checked = s.skipHidden;
+    if (typeof s.skipLocked === 'boolean') els.skipLocked.checked = s.skipLocked;
+    if (typeof s.skipNumbers === 'boolean') els.skipNumbers.checked = s.skipNumbers;
+    if (s.theme) applyTheme(s.theme);
+    syncProvider();
+  }
+
+  // --- ponte com a sandbox --------------------------------------------------
+
+  parent.postMessage({ pluginMessage: { type: 'ui-ready' } }, '*');
+
+  onmessage = (event) => {
+    const msg = event.data.pluginMessage;
+    if (!msg) return;
+
+    if (msg.type === 'init') {
+      applySettings(msg.settings);
+    } else if (msg.type === 'scan-result') {
+      onScanResult(msg.items, msg.warnings);
+    } else if (msg.type === 'apply-done') {
+      setStatus(t('stApplied', { n: msg.applied }) + tail(msg.errors), msg.errors.length > 0);
+      for (const item of items) if (item.checked && item.result) item.translated = true;
+      render();
+    } else if (msg.type === 'undo-done') {
+      setStatus(t('stRestored', { n: msg.restored }) + tail(msg.errors), msg.errors.length > 0);
+      for (const item of items) item.translated = false;
+      render();
+    } else if (msg.type === 'selection-text') {
+      if (msg.text) {
+        els.freeIn.value = msg.text;
+        setFreeStatus(t('stSelCopied'));
+      } else {
+        setFreeStatus(t('stSelEmpty'), true);
+      }
+    } else if (msg.type === 'selection-image') {
+      if (msg.error) {
+        setFreeStatus(msg.error, true);
+        setOcrBusy(false);
+      } else {
+        readImage(msg.bytes);
+      }
+    } else if (msg.type === 'insert-done') {
+      // O mesmo "colar" atende as duas abas; o aviso vai para a que está aberta.
+      if (abaAtual === 'lorem') setLoremStatus(msg.message);
+      else setFreeStatus(msg.message);
+    } else if (msg.type === 'error') {
+      setStatus(msg.message, true);
+      setBusy(false);
+    }
+  };
+
+  const tail = (errors) =>
+    (errors && errors.length ? t('stFailures', { n: errors.length, first: errors[0] }) : '');
+
+  // --- fluxo ----------------------------------------------------------------
+
+  els.scan.addEventListener('click', () => {
+    if (!providerReady(setStatus)) return;
+    setBusy(true);
+    setStatus(t('stSearching'));
+    items = [];
+    render();
+    parent.postMessage({ pluginMessage: { type: 'scan', options: {
+      scope: els.scope.value,
+      skipHidden: els.skipHidden.checked,
+      skipLocked: els.skipLocked.checked,
+    } } }, '*');
+  });
+
+  async function onScanResult(found, warnings) {
+    items = found
+      .filter((it) => !(els.skipNumbers.checked && !/\p{L}/u.test(it.text)))
+      .map((it) => ({ ...it, result: null, error: null, checked: true }));
+
+    if (items.length === 0) {
+      setBusy(false);
+      setStatus(warnings.join(' ') || t('stNoText'), true);
+      render();
+      return;
+    }
+    if (warnings.length) setStatus(warnings.join(' '));
+    render();
+    await translateAll();
+  }
+
+  async function translateAll() {
+    const provider = els.provider.value;
+    const from = els.from.value;
+    const to = els.to.value;
+    const key = currentKey();
+
+    // Textos repetidos são traduzidos uma única vez.
+    const unique = [...new Set(items.map((it) => it.text))];
+    let done = 0;
+    let failure = null;
+
+    const queue = unique.slice();
+    const worker = async () => {
+      while (queue.length) {
+        const text = queue.shift();
+        const cacheKey = [provider, from, to, text].join(' ');
+        try {
+          if (!cache.has(cacheKey)) {
+            cache.set(cacheKey, await translate(provider, text, from, to, key));
+          }
+          const result = cache.get(cacheKey);
+          for (const it of items) if (it.text === text) it.result = result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          failure = failure || message;
+          for (const it of items) if (it.text === text) { it.error = message; it.checked = false; }
+        }
+        done++;
+        setProgress(done / unique.length);
+        setStatus(t('stTranslating', { done, total: unique.length }));
+        render();
+      }
+    };
+
+    await Promise.all([worker(), worker(), worker(), worker()]);
+
+    setProgress(0);
+    setBusy(false);
+    const ok = items.filter((it) => it.result).length;
+    setStatus(
+      failure
+        ? t('stPartial', { ok, total: items.length, error: failure })
+        : t('stDone', { n: ok }),
+      Boolean(failure)
+    );
+    render();
+  }
+
+  els.apply.addEventListener('click', () => {
+    const payload = items
+      .filter((it) => it.checked && it.result)
+      .map((it) => ({ id: it.id, text: it.result }));
+    if (!payload.length) return;
+    setStatus(t('stApplying'));
+    parent.postMessage({ pluginMessage: { type: 'apply', items: payload } }, '*');
+  });
+
+  els.undo.addEventListener('click', () => {
+    const ids = items.filter((it) => it.translated).map((it) => it.id);
+    if (!ids.length) return;
+    setStatus(t('stRestoring'));
+    parent.postMessage({ pluginMessage: { type: 'undo', ids } }, '*');
+  });
+
+  // --- aba de texto livre ---------------------------------------------------
+
+  els.freeFromSelection.addEventListener('click', () => {
+    parent.postMessage({ pluginMessage: { type: 'get-selection-text' } }, '*');
+  });
+
+  els.freeTranslate.addEventListener('click', () => translateFree());
+
+  // Separado do clique porque a leitura de imagem termina caindo aqui.
+  async function translateFree() {
+    const text = els.freeIn.value.trim();
+    if (!text) {
+      setFreeStatus(t('stFreeEmpty'), true);
+      return;
+    }
+    if (!providerReady(setFreeStatus)) return;
+
+    els.freeTranslate.disabled = true;
+    els.freeTranslate.classList.add('busy');
+    els.freeTranslate.textContent = t('freeTranslating');
+    setFreeStatus('');
+    try {
+      els.freeOut.value = await translate(
+        els.provider.value, text, els.from.value, els.to.value, currentKey()
+      );
+      setFreeStatus(t('stFreeDone', { lang: els.to.options[els.to.selectedIndex].text }));
+    } catch (error) {
+      els.freeOut.value = '';
+      setFreeStatus(error instanceof Error ? error.message : String(error), true);
+    } finally {
+      els.freeTranslate.disabled = false;
+      els.freeTranslate.classList.remove('busy');
+      els.freeTranslate.textContent = t('freeTranslate');
+      const empty = els.freeOut.value === '';
+      els.copy.disabled = empty;
+      els.paste.disabled = empty;
+    }
+  }
+
+  // --- leitura de imagem (OCR) ----------------------------------------------
+
+  // O OCR é do Google Cloud Vision, então usa a chave do Google mesmo quando a
+  // tradução está apontada para outro provedor. A Vision API precisa estar
+  // ativada no mesmo projeto da Cloud Translation.
+  const ocrKey = () => (
+    CHAVES_EMBUTIDAS.gcloud
+    || keys.gcloud
+    || (els.provider.value === 'gcloud' ? els.apiKey.value : '')
+    || ''
+  ).trim();
+
+  els.freeFromImage.addEventListener('click', () => {
+    if (!ocrKey()) {
+      setFreeStatus(t('ocrNeedKey'), true);
+      return;
+    }
+    setOcrBusy(true);
+    setFreeStatus(t('ocrReading'));
+    parent.postMessage({ pluginMessage: { type: 'get-selection-image' } }, '*');
+  });
+
+  function setOcrBusy(busy) {
+    els.freeFromImage.disabled = busy;
+    els.freeFromImage.classList.toggle('busy', busy);
+  }
+
+  // Chega aqui com os pixels que a sandbox exportou; daqui para a frente é o
+  // mesmo caminho do texto digitado à mão.
+  async function readImage(bytes) {
+    try {
+      const text = await visionText(bytes, ocrKey());
+      if (!text) {
+        setFreeStatus(t('ocrNoText'), true);
+        return;
+      }
+      els.freeIn.value = text;
+      await translateFree();
+    } catch (error) {
+      setFreeStatus(error instanceof Error ? error.message : String(error), true);
+    } finally {
+      setOcrBusy(false);
+    }
+  }
+
+  async function visionText(bytes, key) {
+    const body = {
+      requests: [{
+        image: { content: toBase64(bytes) },
+        features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
+      }],
+    };
+    // Saber o idioma de origem melhora bastante o reconhecimento.
+    if (els.from.value !== 'auto') {
+      body.requests[0].imageContext = { languageHints: [base(els.from.value)] };
+    }
+
+    const response = await fetch(
+      `https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(key)}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    );
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(
+        (data.error && data.error.message)
+        || t('errHttp', { service: 'Google Vision', status: response.status })
+      );
+    }
+    const result = (data.responses && data.responses[0]) || {};
+    if (result.error && result.error.message) throw new Error(result.error.message);
+    return ((result.fullTextAnnotation && result.fullTextAnnotation.text) || '').trim();
+  }
+
+  // `btoa` só aceita string, e passar o array inteiro de uma vez para
+  // `fromCharCode` estoura a pilha em imagens grandes — daí os pedaços.
+  function toBase64(bytes) {
+    const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    let binary = '';
+    for (let i = 0; i < view.length; i += 0x8000) {
+      binary += String.fromCharCode.apply(null, view.subarray(i, i + 0x8000));
+    }
+    return btoa(binary);
+  }
+
+  // O iframe do plugin nem sempre libera navigator.clipboard, então a cópia vai
+  // pelo caminho antigo, que funciona em ambos os casos.
+  function copyFrom(field) {
+    field.removeAttribute('readonly');
+    field.select();
+    const ok = document.execCommand('copy');
+    field.setAttribute('readonly', 'readonly');
+    window.getSelection().removeAllRanges();
+    return ok;
+  }
+
+  els.copy.addEventListener('click', () => {
+    const ok = copyFrom(els.freeOut);
+    setFreeStatus(ok ? t('stCopied') : t('stCopyFail'), !ok);
+  });
+
+  els.paste.addEventListener('click', () => {
+    parent.postMessage({ pluginMessage: { type: 'insert-text', text: els.freeOut.value } }, '*');
+  });
+
+  // --- lorem ipsum -----------------------------------------------------------
+
+  // Vocabulário do lorem ipsum clássico. É só isto: nada de rede, nada de chave.
+  const LOREM_WORDS = (
+    'a ac accumsan ad adipiscing aenean aliquam aliquet amet ante aptent arcu at auctor '
+    + 'augue bibendum blandit class commodo condimentum congue consectetur consequat conubia '
+    + 'convallis cras cubilia cursus dapibus diam dictum dictumst dignissim dis dolor donec '
+    + 'dui duis egestas eget eleifend elementum elit enim erat eros est et etiam eu euismod '
+    + 'facilisi facilisis fames faucibus felis fermentum feugiat fringilla fusce gravida '
+    + 'habitant habitasse hac hendrerit himenaeos iaculis id imperdiet in inceptos integer '
+    + 'interdum ipsum justo lacinia lacus laoreet lectus leo libero ligula litora lobortis '
+    + 'lorem luctus maecenas magna magnis malesuada massa mattis mauris metus mi molestie '
+    + 'mollis montes morbi mus nam nascetur natoque nec neque netus nibh nisi nisl non nostra '
+    + 'nulla nullam nunc odio orci ornare parturient pellentesque penatibus per pharetra '
+    + 'phasellus placerat platea porta porttitor posuere potenti praesent pretium primis '
+    + 'proin pulvinar purus quam quis quisque rhoncus ridiculus risus rutrum sagittis sapien '
+    + 'scelerisque sed sem semper senectus sit sociosqu sodales sollicitudin suscipit '
+    + 'suspendisse taciti tellus tempor tempus tincidunt torquent tortor tristique turpis '
+    + 'ullamcorper ultrices ultricies urna ut varius vehicula vel velit venenatis vestibulum '
+    + 'vitae vivamus viverra volutpat vulputate'
+  ).split(' ');
+
+  const LOREM_OPENING = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit';
+
+  const pick = (list) => list[Math.floor(Math.random() * list.length)];
+  const between = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
+
+  function loremWords(count) {
+    const words = [];
+    for (let i = 0; i < count; i++) words.push(pick(LOREM_WORDS));
+    return words;
+  }
+
+  // Frases longas ganham uma vírgula no meio, senão o texto fica com cara de
+  // lista de palavras em vez de parágrafo.
+  function loremSentence() {
+    const words = loremWords(between(6, 14));
+    if (words.length > 9) words[between(3, words.length - 4)] += ',';
+    const text = words.join(' ');
+    return text.charAt(0).toUpperCase() + text.slice(1) + '.';
+  }
+
+  function loremParagraph() {
+    const sentences = [];
+    for (let i = 0, total = between(3, 6); i < total; i++) sentences.push(loremSentence());
+    return sentences.join(' ');
+  }
+
+  // O primeiro trecho sempre começa pelo "Lorem ipsum dolor sit amet…", que é o
+  // que faz o texto ser reconhecido de imediato como placeholder.
+  function generateLorem(amount, unit) {
+    if (unit === 'words') {
+      const opening = LOREM_OPENING.replace(',', '').split(' ');
+      const words = opening.slice(0, amount);
+      if (amount > words.length) words.push(...loremWords(amount - words.length));
+      const text = words.join(' ');
+      return text.charAt(0).toUpperCase() + text.slice(1) + '.';
+    }
+
+    if (unit === 'sentences') {
+      const sentences = [`${LOREM_OPENING}.`];
+      while (sentences.length < amount) sentences.push(loremSentence());
+      return sentences.slice(0, amount).join(' ');
+    }
+
+    const paragraphs = [];
+    for (let i = 0; i < amount; i++) paragraphs.push(loremParagraph());
+    paragraphs[0] = `${LOREM_OPENING}, ${paragraphs[0].charAt(0).toLowerCase()}${paragraphs[0].slice(1)}`;
+    return paragraphs.join('\n\n');
+  }
+
+  els.loremGenerate.addEventListener('click', () => {
+    const amount = Math.min(50, Math.max(1, Math.round(Number(els.loremAmount.value) || 5)));
+    els.loremAmount.value = amount;
+    els.loremOut.value = generateLorem(amount, els.loremUnit.value);
+    els.loremCopy.disabled = false;
+    els.loremFill.disabled = false;
+    setLoremStatus('');
+  });
+
+  els.loremCopy.addEventListener('click', () => {
+    const ok = copyFrom(els.loremOut);
+    setLoremStatus(ok ? t('stCopied') : t('stCopyFail'), !ok);
+  });
+
+  // Reaproveita o `insert-text`: substitui as camadas de texto selecionadas ou
+  // cria uma camada nova no centro da tela quando não há seleção.
+  els.loremFill.addEventListener('click', () => {
+    parent.postMessage({ pluginMessage: { type: 'insert-text', text: els.loremOut.value } }, '*');
+  });
+
+  function setLoremStatus(text, isError) {
+    els.loremStatus.textContent = text;
+    els.loremStatus.classList.toggle('error', Boolean(isError));
+  }
+
+  function providerReady(report) {
+    const info = PROVIDERS[els.provider.value] || {};
+    if (info.keyLabel && !currentKey()) {
+      report(t('stNeedKey', { provider: info.name }), true);
+      return false;
+    }
+    if (els.provider.value === 'mymemory' && els.from.value === 'auto') {
+      report(t('stMyMemoryAuto'), true);
+      return false;
+    }
+    return true;
+  }
+
+  function setFreeStatus(text, isError) {
+    els.freeStatus.textContent = text;
+    els.freeStatus.classList.toggle('error', Boolean(isError));
+  }
+
+  // --- provedores de tradução ----------------------------------------------
+
+  async function translate(provider, text, from, to, key) {
+    if (provider === 'gcloud') return translateGoogleCloud(text, from, to, key);
+    if (provider === 'mymemory') return translateMyMemory(text, from, to);
+    return translateDeepL(text, from, to, key);
+  }
+
+  // Google Cloud Translation v2 — a API oficial, com chave do próprio usuário.
+  // É esta (ou o DeepL) que deve ser usada num plugin publicado.
+  async function translateGoogleCloud(text, from, to, key) {
+    const body = { q: text, target: googleCode(to), format: 'text' };
+    if (from !== 'auto') body.source = googleCode(from);
+    const response = await fetch(
+      `https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(key)}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    );
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(
+        (data.error && data.error.message)
+        || t('errHttp', { service: 'Google Cloud', status: response.status })
+      );
+    }
+    return decodeEntities(data.data.translations[0].translatedText);
+  }
+
+  // A API devolve entidades HTML (&#39;, &amp;) mesmo com format: 'text'.
+  function decodeEntities(value) {
+    const holder = document.createElement('textarea');
+    holder.innerHTML = value;
+    return holder.value;
+  }
+
+  async function translateMyMemory(text, from, to) {
+    const pair = `${base(from)}|${base(to)}`;
+    const url = 'https://api.mymemory.translated.net/get'
+      + `?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(pair)}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(t('errHttp', { service: 'MyMemory', status: response.status }));
+    }
+    const data = await response.json();
+    if (data.responseStatus !== 200) {
+      throw new Error(String(data.responseDetails || t('errMyMemory')));
+    }
+    return data.responseData.translatedText;
+  }
+
+  async function translateDeepL(text, from, to, key) {
+    const host = key.endsWith(':fx') ? 'https://api-free.deepl.com' : 'https://api.deepl.com';
+    const body = new URLSearchParams({ text, target_lang: deeplCode(to) });
+    if (from !== 'auto') body.set('source_lang', base(from).toUpperCase());
+    const response = await fetch(`${host}/v2/translate`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `DeepL-Auth-Key ${key}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    });
+    if (response.status === 403) throw new Error(t('errDeeplKey'));
+    if (response.status === 456) throw new Error(t('errDeeplQuota'));
+    if (!response.ok) throw new Error(t('errHttp', { service: 'DeepL', status: response.status }));
+    const data = await response.json();
+    return data.translations[0].text;
+  }
+
+  const base = (code) => (code === 'auto' ? 'auto' : code.split('-')[0]);
+  const googleCode = (code) => (code.startsWith('zh') ? code : base(code));
+  const deeplCode = (code) => {
+    if (code === 'pt-BR') return 'PT-BR';
+    if (code === 'pt-PT') return 'PT-PT';
+    if (code === 'en') return 'EN-US';
+    if (code === 'zh-CN' || code === 'zh-TW') return 'ZH';
+    return base(code).toUpperCase();
+  };
+
+  // --- render ---------------------------------------------------------------
+
+  function render() {
+    if (items.length === 0) {
+      els.list.innerHTML =
+        '<div class="empty">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"'
+        + ' stroke-linecap="round" stroke-linejoin="round">'
+        + '<path d="M4 6h9M8 4v2c0 4-1.8 7.5-4 9" />'
+        + '<path d="M6.5 11c1.4 2.6 3.6 4.4 6.5 5" />'
+        + '<path d="m13 20 4-9 4 9M14.5 17h5" /></svg>'
+        + `<div>${escapeHtml(t('emptyTitle'))}<br />${escapeHtml(t('emptyHint'))}</div>`
+        + '</div>';
+      els.count.textContent = '';
+      els.apply.disabled = true;
+      els.undo.disabled = true;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    for (const item of items) {
+      const row = document.createElement('div');
+      row.className = item.translated ? 'item done' : 'item';
+
+      const check = document.createElement('input');
+      check.type = 'checkbox';
+      check.checked = item.checked;
+      check.disabled = !item.result;
+      check.addEventListener('change', () => { item.checked = check.checked; syncButtons(); });
+
+      const texts = document.createElement('div');
+      texts.className = 'texts';
+      texts.title = t('itemSelect');
+      texts.addEventListener('click', () => {
+        parent.postMessage({ pluginMessage: { type: 'select-node', id: item.id } }, '*');
+      });
+
+      const src = document.createElement('div');
+      src.className = 'src';
+      src.textContent = item.text;
+
+      const dst = document.createElement('div');
+      if (item.error) {
+        dst.className = 'dst failed';
+        dst.textContent = item.error;
+      } else if (item.result) {
+        dst.className = 'dst';
+        dst.textContent = item.result;
+      } else {
+        dst.className = 'dst pending';
+        dst.textContent = t('itemPending');
+      }
+
+      texts.append(src, dst);
+      row.append(check, texts);
+      fragment.appendChild(row);
+    }
+
+    els.list.replaceChildren(fragment);
+    syncButtons();
+  }
+
+  function syncButtons() {
+    const selected = items.filter((it) => it.checked && it.result).length;
+    const applied = items.filter((it) => it.translated).length;
+    els.count.textContent = t('count', { n: items.length, m: selected });
+    els.apply.disabled = selected === 0 || els.scan.disabled;
+    els.undo.disabled = applied === 0;
+  }
+
+  function setBusy(busy) {
+    els.scan.disabled = busy;
+    els.scan.classList.toggle('busy', busy);
+    els.scan.textContent = t(busy ? 'scanBusy' : 'scan');
+    syncButtons();
+  }
+
+  // O estado vazio é montado como string, então o texto traduzido passa por aqui.
+  function escapeHtml(value) {
+    return value.replace(
+      /[&<>"]/g,
+      (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])
+    );
+  }
+
+  function setStatus(text, isError) {
+    els.status.textContent = text;
+    els.status.classList.toggle('error', Boolean(isError));
+  }
+
+  function setProgress(ratio) {
+    els.bar.classList.toggle('on', ratio > 0);
+    els.progress.style.width = `${Math.round(ratio * 100)}%`;
+  }
+
+  // O logo fica num template no fim do arquivo, só para não atravancar a
+  // leitura do resto; `npm run logo` regrava aquele bloco.
+  addEventListener('DOMContentLoaded', () => {
+    els.mark.appendChild($('logo').content.cloneNode(true));
+  });
+
+  // No fim de tudo: `renderView` depende de estado declarado mais acima com
+  // `let`, que só existe depois que o script inteiro roda.
+  renderView();
+  render();
+</script>
+
+<template id="logo"><svg aria-hidden="true" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_1052_2)"><rect width="128" height="128" fill="url(#paint0_linear_1052_2)"/><rect x="4" y="4" width="121" height="121" stroke="url(#paint1_linear_1052_2)" stroke-width="7"/><rect x="4" y="4" width="121" height="121" rx="15" stroke="url(#paint2_linear_1052_2)" stroke-width="7"/><path d="M66 29C84 29 99 44 99 63C99 81 84 96 66 96H32V63C32 44 47 29 66 29Z" stroke="white" stroke-width="6"/><path d="M58 58C58 58 58 58 58 58L65 48C65 47 66 47 66 47L77 47C79 47 80 49 78 51L68 59C68 60 67 61 68 62L80 78C81 79 80 81 79 81H73C72 81 72 81 71 80L60 66C60 66 60 66 60 66C60 66 60 66 60 66L58 67C58 67 58 67 58 67C58 67 58 67 58 67L66 78C67 79 66 81 64 81H51C50 81 49 80 49 79V49C49 48 50 47 51 47H56C57 47 58 48 58 49V58C58 58 58 58 58 58Z" fill="white"/></g><defs><linearGradient id="paint0_linear_1052_2" x1="64" y1="0" x2="64" y2="128" gradientUnits="userSpaceOnUse"><stop stop-color="#FA7835"/><stop offset="1" stop-color="#C72800"/></linearGradient><linearGradient id="paint1_linear_1052_2" x1="64" y1="0" x2="64" y2="128" gradientUnits="userSpaceOnUse"><stop stop-color="#C82A01"/><stop offset="1" stop-color="#FA7835"/></linearGradient><linearGradient id="paint2_linear_1052_2" x1="64" y1="0" x2="64" y2="128" gradientUnits="userSpaceOnUse"><stop stop-color="#C82A01"/><stop offset="1" stop-color="#FA7835"/></linearGradient><clipPath id="clip0_1052_2"><rect width="128" height="128" fill="white"/></clipPath></defs></svg></template>

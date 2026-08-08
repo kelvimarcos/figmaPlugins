@@ -1,0 +1,9 @@
+# Node
+*.log
+*.log.*
+node_modules
+
+out/
+dist/
+# saída do tsc; o Figma lê daqui, mas o arquivo é sempre regerado por `npm run build`
+build/

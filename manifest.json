@@ -1,0 +1,24 @@
+{
+  "name": "Kivo",
+  "id": "1667576676716269083",
+  "api": "1.0.0",
+  "main": "build/code.js",
+  "ui": "src/frontend/ui.html",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
+  "editorType": [
+    "figma",
+    "figjam"
+  ],
+  "networkAccess": {
+    "allowedDomains": [
+      "https://translation.googleapis.com",
+      "https://vision.googleapis.com",
+      "https://api.mymemory.translated.net",
+      "https://api-free.deepl.com",
+      "https://api.deepl.com"
+    ],
+    "reasoning": "Envia os textos selecionados para um serviço de tradução escolhido pelo usuário e recebe a tradução de volta. Quando o usuário pede a leitura de uma imagem, envia também a imagem selecionada para o Google Cloud Vision para extrair o texto."
+  }
+}

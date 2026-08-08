@@ -1,0 +1,75 @@
+<svg width="1920" height="960" viewBox="0 0 1920 960" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cover art da Figma Community (1920×960). Fonte vetorial da img logo/cover.png. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1920" y2="960" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#232323"/>
+      <stop offset="1" stop-color="#141414"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1"
+      gradientTransform="translate(300 300) scale(760)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FA7835" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#FA7835" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#FA7835"/>
+      <stop offset="1" stop-color="#C72800"/>
+    </linearGradient>
+    <linearGradient id="tileEdge" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#C82A01"/>
+      <stop offset="1" stop-color="#FA7835"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1920" height="960" fill="url(#bg)"/>
+  <rect width="1920" height="960" fill="url(#glow)"/>
+
+  <!-- Marca -->
+  <g transform="translate(140 232)">
+    <g transform="scale(1.375)">
+      <rect width="128" height="128" rx="28" fill="url(#tile)"/>
+      <rect x="3.6" y="3.6" width="120.8" height="120.8" rx="24" stroke="url(#tileEdge)" stroke-width="7.19"/>
+      <path d="M65.93 29.08C84.42 29.08 99.41 44.06 99.41 62.55C99.41 81.04 84.42 96.03 65.93 96.03H32.45V62.55C32.45 44.06 47.44 29.08 65.93 29.08Z"
+            stroke="#fff" stroke-width="5.53"/>
+      <path d="M58.31 58.31C58.34 58.31 58.37 58.30 58.39 58.27L64.54 48.10C64.91 47.50 65.55 47.13 66.25 47.13L77.09 47.13C78.96 47.13 79.81 49.48 78.36 50.67L68.42 58.88C67.59 59.56 67.45 60.77 68.09 61.62L80.19 77.66C81.18 78.98 80.24 80.87 78.59 80.87H72.95C72.32 80.87 71.73 80.57 71.35 80.08L60.44 65.66C60.40 65.62 60.36 65.59 60.30 65.59C60.26 65.59 60.23 65.60 60.19 65.63L58.27 67.22C58.27 67.23 58.26 67.23 58.26 67.23C58.24 67.23 58.23 67.25 58.24 67.26L65.98 77.67C66.96 78.99 66.02 80.87 64.38 80.87H51.21C50.10 80.87 49.21 79.97 49.21 78.87V49.13C49.21 48.03 50.10 47.13 51.21 47.13H56.22C57.32 47.13 58.22 48.03 58.22 49.13V58.22C58.22 58.27 58.26 58.31 58.31 58.31Z"
+            fill="#fff"/>
+    </g>
+  </g>
+
+  <!-- Nome e descrição -->
+  <g font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="140" y="530" fill="#fff" font-size="148" font-weight="700" letter-spacing="-4">Kivo</text>
+    <text x="140" y="606" fill="#B8B8B8" font-size="44" font-weight="500">Tradutor e gerador de textos</text>
+
+    <!-- Recursos -->
+    <g fill="#8C8C8C" font-size="30" font-weight="500">
+      <text x="140" y="700">Traduzir em lote</text>
+      <text x="404" y="700" fill="#5A5A5A">·</text>
+      <text x="432" y="700">Texto livre</text>
+      <text x="612" y="700" fill="#5A5A5A">·</text>
+      <text x="640" y="700">Ler texto de imagem</text>
+    </g>
+
+    <!-- Amostra: original → tradução, como aparece na lista do plugin -->
+    <g transform="translate(1040 250)">
+      <rect width="740" height="460" rx="28" fill="#2C2C2C" stroke="#3D3D3D" stroke-width="2"/>
+
+      <g transform="translate(44 56)">
+        <text fill="#8C8C8C" font-size="30" font-weight="500">Start your free trial</text>
+        <rect x="0" y="26" width="4" height="46" rx="2" fill="#FA7835"/>
+        <text x="24" y="62" fill="#fff" font-size="32" font-weight="600">Comece seu teste grátis</text>
+      </g>
+
+      <g transform="translate(44 202)">
+        <text fill="#8C8C8C" font-size="30" font-weight="500">No credit card required</text>
+        <rect x="0" y="26" width="4" height="46" rx="2" fill="#FA7835"/>
+        <text x="24" y="62" fill="#fff" font-size="32" font-weight="600">Sem precisar de cartão</text>
+      </g>
+
+      <g transform="translate(44 348)">
+        <rect width="286" height="64" rx="14" fill="#FA7835"/>
+        <text x="143" y="41" fill="#fff" font-size="28" font-weight="600" text-anchor="middle">Aplicar</text>
+        <text x="326" y="41" fill="#8C8C8C" font-size="26" font-weight="500">2 textos · 2 selecionados</text>
+      </g>
+    </g>
+  </g>
+</svg>
